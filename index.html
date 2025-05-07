@@ -192,9 +192,9 @@
 
             // Calcular dias
             const umDiaEmMs = 24 * 60 * 60 * 1000;
-            const diasPassados = Math.max(1, Math.round((hoje.getTime() - dataUltimaLeitura.getTime()) / umDiaEmMs));
-            const diasRestantes = Math.max(0, Math.round((dataProximaLeitura.getTime() - hoje.getTime()) / umDiaEmMs));
-            const periodoTotalDias = Math.max(1, Math.round((dataProximaLeitura.getTime() - dataUltimaLeitura.getTime()) / umDiaEmMs));
+            const diasPassados = Math.max(1, Math.floor((hoje.getTime() - dataUltimaLeitura.getTime()) / umDiaEmMs));
+            const diasRestantes = Math.max(0, Math.floor((dataProximaLeitura.getTime() - hoje.getTime()) / umDiaEmMs));
+            const periodoTotalDias = Math.max(1, Math.floor((dataProximaLeitura.getTime() - dataUltimaLeitura.getTime()) / umDiaEmMs) + 1); // +1 porque inclui ambos os dias
 
             // Calcular consumo médio diário
             const consumoMedioDiario = consumoMensal / diasPassados;
@@ -203,10 +203,12 @@
             const projecaoConsumo = consumoMedioDiario * periodoTotalDias;
             const projecaoGasto = projecaoConsumo * valorKw;
 
-            // Formatar as datas para exibição
+            // Obter as datas originais do input (preservando o formato exato inserido pelo usuário)
+            const dataUltimaFormatada = document.getElementById('dataUltimaLeitura').value.split('-').reverse().join('/');
+            const dataProximaFormatada = document.getElementById('dataProximaLeitura').value.split('-').reverse().join('/');
+            
+            // Formatar a data de hoje
             const opcoesData = { day: '2-digit', month: '2-digit', year: 'numeric' };
-            const dataUltimaFormatada = dataUltimaLeitura.toLocaleDateString('pt-BR', opcoesData);
-            const dataProximaFormatada = dataProximaLeitura.toLocaleDateString('pt-BR', opcoesData);
             const dataHojeFormatada = hoje.toLocaleDateString('pt-BR', opcoesData);
 
             // Mostrar os resultados
