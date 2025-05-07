@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Consumo de Energia Elétrica</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #0066cc;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #444;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 20px auto;
+            width: 200px;
+        }
+        button:hover {
+            background-color: #0055aa;
+        }
+        .results {
+            margin-top: 30px;
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 5px;
+            border-left: 5px solid #0066cc;
+        }
+        .result-item {
+            margin-bottom: 15px;
+        }
+        .result-item h3 {
+            margin-top: 0;
+            margin-bottom: 5px;
+            color: #0066cc;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #0066cc;
+        }
+        .separator {
+            border-top: 1px solid #ddd;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Calculadora de Consumo de Energia Elétrica</h1>
+        
+        <div class="form-group">
+            <label for="kwAnterior">Leitura do kW anterior:</label>
+            <input type="number" id="kwAnterior" placeholder="Digite o valor do kW anterior">
+        </div>
+        
+        <div class="form-group">
+            <label for="kwAtual">Leitura do kW atual:</label>
+            <input type="number" id="kwAtual" placeholder="Digite o valor do kW atual">
+        </div>
+        
+        <div class="form-group">
+            <label for="dataUltimaLeitura">Data da última leitura:</label>
+            <input type="date" id="dataUltimaLeitura">
+        </div>
+        
+        <div class="form-group">
+            <label for="dataProximaLeitura">Data da próxima leitura:</label>
+            <input type="date" id="dataProximaLeitura">
+        </div>
+        
+        <button onclick="calcularConsumo()">Calcular</button>
+        
+        <div class="results" id="results" style="display: none;">
+            <div class="result-item">
+                <h3>Leitura anterior:</h3>
+                <p id="leituraAnterior">0 kW</p>
+            </div>
+            
+            <div class="result-item">
+                <h3>Leitura atual:</h3>
+                <p id="leituraAtual">0 kW</p>
+            </div>
+            
+            <div class="result-item">
+                <h3>Consumo mensal:</h3>
+                <p id="consumoMensal">0 kW</p>
+            </div>
+            
+            <div class="result-item">
+                <h3>Valor em R$:</h3>
+                <p id="valorTotal">R$ 0,00</p>
+            </div>
+            
+            <div class="separator"></div>
+            
+            <div class="result-item">
+                <h3>Informações do período:</h3>
+                <p>Período total: <span id="periodoTotal">De 00/00/0000 até 00/00/0000 (0 dias)</span></p>
+                <p>Dias passados desde a última leitura: <span class="highlight" id="diasPassados">0 dias</span></p>
+                <p>Dias restantes até a próxima leitura: <span class="highlight" id="diasRestantes">0 dias</span></p>
+            </div>
+            
+            <div class="separator"></div>
+            
+            <div class="result-item">
+                <h3>Consumo médio:</h3>
+                <p>Consumo médio diário até hoje: <span class="highlight" id="consumoMedioDiario">0 kW/dia</span></p>
+                <p>Projeção de gasto até o final do período: <span class="highlight" id="projecaoGasto">R$ 0,00</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Definir a data atual como padrão nos campos de data
+        document.addEventListener('DOMContentLoaded', function() {
+            // Definir data atual
+            const hoje = new Date();
+            
+            // Formatar data para o formato YYYY-MM-DD
+            const formatoData = hoje.toISOString().split('T')[0];
+            
+            // Definir data da última leitura como padrão para o mês anterior
+            const mesPassado = new Date(hoje);
+            mesPassado.setMonth(hoje.getMonth() - 1);
+            const formatoMesPassado = mesPassado.toISOString().split('T')[0];
+            
+            document.getElementById('dataUltimaLeitura').value = formatoMesPassado;
+            document.getElementById('dataProximaLeitura').value = formatoData;
+        });
+
+        function calcularConsumo() {
+            // Obter os valores dos campos
+            const kwAnterior = parseFloat(document.getElementById('kwAnterior').value);
+            const kwAtual = parseFloat(document.getElementById('kwAtual').value);
+            const dataUltimaLeitura = new Date(document.getElementById('dataUltimaLeitura').value);
+            const dataProximaLeitura = new Date(document.getElementById('dataProximaLeitura').value);
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0); // Zerar hora para comparação justa
+            const valorKw = 1.25; // Valor de 1kW em R$
+
+            // Validar os campos
+            if (isNaN(kwAnterior) || isNaN(kwAtual) || !dataUltimaLeitura || !dataProximaLeitura) {
+                alert("Por favor, preencha todos os campos corretamente.");
+                return;
+            }
+
+            if (kwAtual < kwAnterior) {
+                alert("O valor do kW atual deve ser maior ou igual ao valor do kW anterior.");
+                return;
+            }
+
+            // Calcular o consumo mensal
+            const consumoMensal = kwAtual - kwAnterior;
+
+            // Calcular o valor em R$
+            const valorTotal = consumoMensal * valorKw;
+
+            // Calcular dias
+            const umDiaEmMs = 24 * 60 * 60 * 1000;
+            const diasPassados = Math.max(1, Math.round((hoje.getTime() - dataUltimaLeitura.getTime()) / umDiaEmMs));
+            const diasRestantes = Math.max(0, Math.round((dataProximaLeitura.getTime() - hoje.getTime()) / umDiaEmMs));
+            const periodoTotalDias = Math.max(1, Math.round((dataProximaLeitura.getTime() - dataUltimaLeitura.getTime()) / umDiaEmMs));
+
+            // Calcular consumo médio diário
+            const consumoMedioDiario = consumoMensal / diasPassados;
+            
+            // Calcular projeção de gasto até o final do período
+            const projecaoConsumo = consumoMedioDiario * periodoTotalDias;
+            const projecaoGasto = projecaoConsumo * valorKw;
+
+            // Formatar as datas para exibição
+            const opcoesData = { day: '2-digit', month: '2-digit', year: 'numeric' };
+            const dataUltimaFormatada = dataUltimaLeitura.toLocaleDateString('pt-BR', opcoesData);
+            const dataProximaFormatada = dataProximaLeitura.toLocaleDateString('pt-BR', opcoesData);
+            const dataHojeFormatada = hoje.toLocaleDateString('pt-BR', opcoesData);
+
+            // Mostrar os resultados
+            document.getElementById('leituraAnterior').textContent = `${kwAnterior.toFixed(0)} kW`;
+            document.getElementById('leituraAtual').textContent = `${kwAtual.toFixed(0)} kW`;
+            document.getElementById('consumoMensal').textContent = `${consumoMensal.toFixed(0)} kW`;
+            document.getElementById('valorTotal').textContent = `R$ ${valorTotal.toFixed(2)}`;
+            document.getElementById('periodoTotal').textContent = `De ${dataUltimaFormatada} até ${dataProximaFormatada} (${periodoTotalDias} dias)`;
+            document.getElementById('diasPassados').textContent = `${diasPassados} dias (até ${dataHojeFormatada})`;
+            document.getElementById('diasRestantes').textContent = `${diasRestantes} dias`;
+            document.getElementById('consumoMedioDiario').textContent = `${consumoMedioDiario.toFixed(2)} kW/dia`;
+            document.getElementById('projecaoGasto').textContent = `R$ ${projecaoGasto.toFixed(2)}`;
+
+            // Mostrar a div de resultados
+            document.getElementById('results').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
