@@ -77,6 +77,28 @@
             border-top: 1px solid #ddd;
             margin: 20px 0;
         }
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .action-buttons button {
+            width: 48%;
+            margin: 0;
+        }
+        .clear-button {
+            background-color: #ff6347;
+        }
+        .clear-button:hover {
+            background-color: #e74c3c;
+        }
+        .save-status {
+            text-align: center;
+            color: #28a745;
+            margin-top: 10px;
+            font-style: italic;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -103,7 +125,12 @@
             <input type="date" id="dataProximaLeitura">
         </div>
         
-        <button onclick="calcularConsumo()">Calcular</button>
+        <div class="action-buttons">
+            <button onclick="calcularConsumo()">Calcular</button>
+            <button class="clear-button" onclick="limparDados()">Limpar Dados</button>
+        </div>
+        
+        <p id="saveStatus" class="save-status">Dados salvos automaticamente!</p>
         
         <div class="results" id="results" style="display: none;">
             <div class="result-item">
@@ -146,8 +173,46 @@
     </div>
 
     <script>
-        // Definir a data atual como padrão nos campos de data
+        // Constantes
+        const STORAGE_KEY = 'calculadoraEnergiaData';
+        const valorKw = 1.25; // Valor de 1kW em R$
+        
+        // Carregar dados salvos ao carregar a página
         document.addEventListener('DOMContentLoaded', function() {
+            carregarDadosSalvos();
+        });
+        
+        // Salvar dados quando os campos forem alterados
+        document.getElementById('kwAnterior').addEventListener('change', salvarDados);
+        document.getElementById('kwAtual').addEventListener('change', salvarDados);
+        document.getElementById('dataUltimaLeitura').addEventListener('change', salvarDados);
+        document.getElementById('dataProximaLeitura').addEventListener('change', salvarDados);
+        
+        // Função para carregar dados salvos do localStorage
+        function carregarDadosSalvos() {
+            const dadosSalvos = localStorage.getItem(STORAGE_KEY);
+            
+            if (dadosSalvos) {
+                const dados = JSON.parse(dadosSalvos);
+                
+                // Preencher os campos com os dados salvos
+                document.getElementById('kwAnterior').value = dados.kwAnterior || '';
+                document.getElementById('kwAtual').value = dados.kwAtual || '';
+                document.getElementById('dataUltimaLeitura').value = dados.dataUltimaLeitura || '';
+                document.getElementById('dataProximaLeitura').value = dados.dataProximaLeitura || '';
+                
+                // Se todos os campos tiverem valores, calcular automaticamente
+                if (dados.kwAnterior && dados.kwAtual && dados.dataUltimaLeitura && dados.dataProximaLeitura) {
+                    calcularConsumo();
+                }
+            } else {
+                // Se não houver dados salvos, definir datas padrão
+                definirDatasDefault();
+            }
+        }
+        
+        // Função para definir datas padrão
+        function definirDatasDefault() {
             // Definir data atual
             const hoje = new Date();
             
@@ -161,7 +226,49 @@
             
             document.getElementById('dataUltimaLeitura').value = formatoMesPassado;
             document.getElementById('dataProximaLeitura').value = formatoData;
-        });
+            
+            // Salvar as datas padrão
+            salvarDados();
+        }
+        
+        // Função para salvar dados no localStorage
+        function salvarDados() {
+            const dados = {
+                kwAnterior: document.getElementById('kwAnterior').value,
+                kwAtual: document.getElementById('kwAtual').value,
+                dataUltimaLeitura: document.getElementById('dataUltimaLeitura').value,
+                dataProximaLeitura: document.getElementById('dataProximaLeitura').value
+            };
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+            
+            // Mostrar mensagem de salvamento
+            const saveStatus = document.getElementById('saveStatus');
+            saveStatus.style.display = 'block';
+            
+            // Esconder a mensagem após 2 segundos
+            setTimeout(function() {
+                saveStatus.style.display = 'none';
+            }, 2000);
+        }
+        
+        // Função para limpar dados salvos
+        function limparDados() {
+            localStorage.removeItem(STORAGE_KEY);
+            
+            // Limpar os campos
+            document.getElementById('kwAnterior').value = '';
+            document.getElementById('kwAtual').value = '';
+            
+            // Redefinir datas padrão
+            definirDatasDefault();
+            
+            // Esconder resultados
+            document.getElementById('results').style.display = 'none';
+            
+            // Mostrar mensagem
+            alert('Dados limpos com sucesso!');
+        }
 
         function calcularConsumo() {
             // Obter os valores dos campos
@@ -171,7 +278,6 @@
             const dataProximaLeitura = new Date(document.getElementById('dataProximaLeitura').value);
             const hoje = new Date();
             hoje.setHours(0, 0, 0, 0); // Zerar hora para comparação justa
-            const valorKw = 1.25; // Valor de 1kW em R$
 
             // Validar os campos
             if (isNaN(kwAnterior) || isNaN(kwAtual) || !dataUltimaLeitura || !dataProximaLeitura) {
@@ -192,8 +298,10 @@
 
             // Calcular dias
             const umDiaEmMs = 24 * 60 * 60 * 1000;
-            const diasPassados = Math.max(1, Math.floor((hoje.getTime() - dataUltimaLeitura.getTime()) / umDiaEmMs));
-            const diasRestantes = Math.max(0, Math.floor((dataProximaLeitura.getTime() - hoje.getTime()) / umDiaEmMs));
+            // +1 para incluir o próprio dia da última leitura
+            const diasPassados = Math.max(1, Math.floor((hoje.getTime() - dataUltimaLeitura.getTime()) / umDiaEmMs) + 1);
+            // +1 para incluir o próprio dia da próxima leitura
+            const diasRestantes = Math.max(0, Math.floor((dataProximaLeitura.getTime() - hoje.getTime()) / umDiaEmMs) + 1);
             const periodoTotalDias = Math.max(1, Math.floor((dataProximaLeitura.getTime() - dataUltimaLeitura.getTime()) / umDiaEmMs) + 1); // +1 porque inclui ambos os dias
 
             // Calcular consumo médio diário
@@ -224,6 +332,9 @@
 
             // Mostrar a div de resultados
             document.getElementById('results').style.display = 'block';
+            
+            // Salvar os dados após o cálculo
+            salvarDados();
         }
     </script>
 </body>
